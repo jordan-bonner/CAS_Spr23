@@ -7,7 +7,6 @@ output: html_document
 
 
 ```{r packages_fps, include = FALSE}
-
 #' Install `pacman` package if not already loaded
 setdiff(
   "pacman",
