@@ -1,0 +1,109 @@
+---
+title: "Effective Data Visualization for Actuaries"
+author: "Brian Fannin, Jordan Bonner"
+date: "5/08/2023"
+output: html_document
+---
+
+
+```{r packages_fps, include = FALSE}
+
+#' Install `pacman` package if not already loaded
+setdiff(
+  "pacman",
+  rownames(installed.packages())
+  ) |>
+  install.packages()
+
+#' Load (And Install if Necessary) Required Packages
+pacman::p_load(
+  CASdatasets,
+  tidyverse,
+  tidylog
+)
+
+#' Specify Image Filepath
+path_png <- rstudioapi::getSourceEditorContext()$path |>
+  dirname() |>
+  dirname() |>
+  paste0("/Images for Slides/")
+```
+
+
+```{r initial_example_plot_a}
+#' Sample `pressure` Scatterplot
+pressure |>
+  ggplot(aes(x = temperature, y = pressure)) +
+  geom_point(size = 2) +
+  geom_line() +
+  theme_minimal() +
+  labs(
+    x = "Temperature",
+    y = "Pressure",
+    title = "Example Plot for Presentation A"
+  )
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "example_plot_a.png"
+  ),
+  width = 6,
+  height = 4)
+```
+
+
+```{r initial_example_plot_b}
+#' Sample `mtcars` scatterplot with a smoothed line
+mtcars |>
+  mutate(cyl = factor(cyl)) |>
+  ggplot(aes(x = wt, y = mpg)) +
+  geom_point(aes(color = cyl),
+             size = 2) + 
+  geom_smooth(method = "lm",
+              formula = y ~ x,
+              color = "black") +
+  theme_minimal() +
+  labs(
+    x = "Weight",
+    y = "Miles per Gallon",
+    col = "# of Cylinders",
+    title = "Example Plot for Presentation B"
+  )
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "example_plot_b.png"
+  ),
+  width = 6,
+  height = 4)
+```
+
+
+```{r initial_example_plot_c}
+#' Sample `mtcars` scatterplot with groups
+iris |>
+  mutate(Species = str_to_title(Species)) |>
+  ggplot(aes(x = Sepal.Length, y = Sepal.Width, color = Species)) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  labs(
+    x = "Sepal Length",
+    y = "Sepal Width",
+    col = "Species",
+    title = "Example Plot for Presentation C"
+  )
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "example_plot_c.png"
+  ),
+  width = 6,
+  height = 4)
+```
+
