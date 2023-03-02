@@ -162,6 +162,7 @@ ggsave(
 
 
 
+
 ```{r simple_fixes}
 #' Fake fitted severitiy data
 set.seed(123)
@@ -295,7 +296,6 @@ ggsave(
   width = 6,
   height = 4)
 ```
-
 
 
 
