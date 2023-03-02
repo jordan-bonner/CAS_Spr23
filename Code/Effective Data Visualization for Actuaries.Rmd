@@ -16,7 +16,7 @@ setdiff(
 
 #' Load (And Install if Necessary) Required Packages
 pacman::p_load(
-  CASdatasets,
+  raw,
   tidyverse,
   tidylog
 )
@@ -26,6 +26,15 @@ path_png <- rstudioapi::getSourceEditorContext()$path |>
   dirname() |>
   dirname() |>
   paste0("/Images for Slides/")
+
+#' Specify colors
+pal_CAS <- c(
+  "yellow" = "#FFD20D",
+  "med_blue" = "#0071BC",
+  "light_blue" = "#8DBBDD",
+  "red" = "#ED254E",
+  "dark_blue" = "#011936"
+)
 ```
 
 
@@ -106,3 +115,278 @@ ggsave(
   height = 4)
 ```
 
+
+
+```{r initial_example_plot_d}
+#' Sample `PPA_LossDevelopment` and `PPA_LossDevelopment` line chart
+PPA_LossDevelopment |>
+  arrange(AccidentYear, Lag) |>
+  group_by(AccidentYear) |>
+  mutate(IncremLoss = ReportedLoss-replace_na(lag(ReportedLoss), 0),
+         Lag = factor(Lag)) |>
+  ggplot(aes(x = ReportedLoss, y = IncremLoss)) +
+  geom_point() +
+  facet_grid(~Lag) +
+  geom_smooth(method = "lm",
+              formula = y ~ x,
+              color = "black",
+              se = FALSE) +
+  theme_minimal() +
+  labs(
+    x = "Cumulative Loss",
+    y = "Incremental Loss",
+    col = "Dev. Pd.",
+    title = "Example Plot for Presentation D"
+  )
+PPA_LossTrend |>
+  mutate(freq = ClosedClaimCount / EarnedExposure) |>
+  ggplot(aes(x = YearEndingQuarter, y = freq)) +
+  geom_line() +
+  # scale_y_continuous(limits = c(0, 0.075)) +
+  theme_minimal() +
+  labs(
+    x = "Year Ending Quarter",
+    y = "Frequency",
+    title = "Example Plot for Presentation D"
+  )
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "example_plot_d.png"
+  ),
+  width = 6,
+  height = 4)
+```
+
+
+
+```{r two_axes_or_one}
+#' Fake fitted severitiy data
+set.seed(123)
+severity_fit_data <- tibble(
+  x = seq(1, 100E3, 1),
+  prob = dlnorm(seq(1, 100E3, 1),
+                meanlog = 10,
+                sdlog = 1))
+severity_data <- tibble(
+  x = runif(500E3),
+  lnorm_mean = rnorm(500E3, mean = 10, sd = 0.5),
+  lnorm_sigma = rnorm(500E3, mean = 1, sd = 0.10)) |>
+  mutate(loss = qlnorm(x, meanlog = lnorm_mean, sdlog = lnorm_sigma)) |>
+  filter(loss <= 100E3) |>
+  head(100E3)
+
+
+
+#' First - a bad plot of `severity`
+sev_plot <- severity_data |>
+  ggplot() +
+  geom_histogram(aes(x = loss, after_stat(density)),
+                 binwidth = 0.5E3) +
+  stat_function(fun = dlnorm,
+                args = list(meanlog = 10, sdlog = 1.0)) #+
+  # stat_function(fun = dgamma,
+  #               args = list(shape = 1.5, scale = 5000 * 2 / 1.5))
+sev_plot
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "severity_1_bad.png"
+  ),
+  width = 6,
+  height = 4)
+
+
+
+#' Made better with a `titles`...
+sev_plot +
+  labs(
+    x = "Severity",
+    y = "Density",
+    title = "Fitted Severity Curve"
+  )
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "severity_2_good.png"
+  ),
+  width = 6,
+  height = 4)
+
+
+
+#' Made better with `udpating axes`...
+sev_plot +
+  labs(
+    x = "Severity",
+    title = "Fitted Severity Curve"
+  ) +
+  scale_x_continuous(labels = scales::comma) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank())
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "severity_3_better.png"
+  ),
+  width = 6,
+  height = 4)
+
+
+
+#' Made better with being `larger`...
+#' Note that adding teme adds in y-axis.
+sev_plot <- sev_plot +
+  labs(
+    x = "Severity",
+    title = "Fitted Severity Curve"
+  ) +
+  theme_minimal(base_size = 20) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  scale_x_continuous(labels = scales::comma) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank())
+sev_plot
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "severity_4_even_better.png"
+  ),
+  width = 6,
+  height = 4)
+
+
+
+#' Made better with adding `colors`...
+severity_data |>
+  ggplot() +
+  geom_histogram(aes(x = loss, after_stat(density)),
+                 binwidth = 0.5E3,
+                 fill = pal_CAS["light_blue"]) +
+  stat_function(fun = dlnorm,
+                args = list(meanlog = 10, sdlog = 1.0),
+                color = pal_CAS["dark_blue"]) +
+  labs(
+    x = "Severity",
+    title = "Fitted Severity Curve"
+  ) +
+  theme_minimal(base_size = 20) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  scale_x_continuous(labels = scales::comma) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank())
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "severity_5_best.png"
+  ),
+  width = 6,
+  height = 4)
+```
+
+
+
+
+```{r two_axes_or_one}
+#' Fake data for plotting two axes
+relativity_data <- tibble(
+  level = paste0("Cat. ", LETTERS[1:6]),
+  ee = c(2.5E3, 20E3, 54E3, 42E3, 13E3, 3E3),
+  rel = c(0.85, 0.90, 1.0, 1.2, 1.3, 1.8)
+  )
+adj_ratio <- max(relativity_data$ee) / max(relativity_data$rel)
+
+
+#' First - a plot of just `relativity`
+relativity_data |>
+  ggplot(aes(x = level,
+             y = rel,
+             group = 1)) +
+  geom_line(linewidth = 1,
+            color = pal_CAS["med_blue"]) +
+  scale_y_continuous(limits = c(0, 2)) +
+  theme_minimal() +
+  labs(
+    x = "Category",
+    y = "Indicated Relativity",
+    title = "Indicated Relativity by Category"
+  )
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "two_axes__rels_only.png"
+  ),
+  width = 6,
+  height = 4)
+
+
+#' Second - a plot of just `exposures`
+relativity_data |>
+  ggplot(aes(x = level,
+             y = ee,
+             group = 1)) +
+  geom_bar(stat = "identity",
+           width = 0.6,
+           fill = "grey") +
+  scale_y_continuous(limits = c(0, 60E3),
+                     labels = scales::comma) +
+  theme_minimal() +
+  labs(
+    x = "Category",
+    y = "Exposures",
+    title = "Indicated Relativity by Exposure Count & Category"
+  )
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "two_axes__ee_only.png"
+  ),
+  width = 6,
+  height = 4)
+
+
+#' Third - a plot of `relativity` vs `exposures`
+relativity_data |>
+  ggplot(aes(x = level, group = 1)) +
+  geom_bar(aes(y = ee / adj_ratio),
+           stat = "identity",
+           width = 0.6,
+           fill = "grey") +
+  geom_line(aes(y = rel),
+            linewidth = 1,
+            color = pal_CAS["med_blue"]) +
+  scale_y_continuous(limits = c(0, 2),
+                     sec.axis = sec_axis(~ . * adj_ratio,
+                                         name = "Exposures",
+                                         labels = scales::comma)) +
+  theme_minimal() +
+  labs(
+    x = "Category",
+    y = "Indicated Relativity",
+    title = "Indicated Relativity by Category"
+  )
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "two_axes__rels_and_ee.png"
+  ),
+  width = 6,
+  height = 4)
+
+
+```
