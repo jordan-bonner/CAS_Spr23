@@ -162,6 +162,81 @@ ggsave(
 
 
 
+```{r indication}
+
+PPA_AccidentYear |>
+  cbind(
+    data.frame(
+      rate_level_adj = c(1.2161, 1.2176, 1.1311, 1.0892, 1.0991),
+      prem_trend = c(1.1342, 1.1116, 1.0879, 1.0663, 1.0452),
+      loss_dev = c(1.0000, 0.9899, 1.0003, 1.0282, 1.0966),
+      loss_trend = c(0.9912, 0.9962, 1.0012, 1.0062, 1.0113),
+      ulae_ratio = rep(1.143, 5)
+    )
+  ) |>
+  transmute(
+    AccidentYear,
+    EarnedPremium,
+    ReportedLosses,
+    crl = (1 / rate_level_adj - 1) * ReportedLosses,
+    trend = (loss_trend / prem_trend - 1) * ReportedLosses,
+    dev = (loss_dev - 1) * ReportedLosses,
+    ulae = (ulae_ratio - 1) * ReportedLosses
+  ) |>
+  pivot_longer(-(AccidentYear:EarnedPremium),
+               names_to = "field") |>
+  mutate(ratio = value / EarnedPremium) |>
+  select(-EarnedPremium, -value) |>
+  pivot_wider(names_from = field, values_from = ratio)
+  ggplot(aes(x = AccidentYear, y = ratio, fill = field)) +
+  geom_bar(stat = "identity")
+  
+
+# Can we make negative values below the line, and show net on top? Or even perhaps
+# show empty boxes above where loss was reduced
+
+
+# Proj EP @ CRL = EP * CRL * Trend
+
+# Proj Ult L & LAE = Rep L * Dev * Trend * ULAE
+
+# LR = L / EP
+
+PPA_AccidentYear |>
+  cbind(
+    data.frame(
+      loss_dev = c(1.0000, 1.0000, 1.0003, 1.0282, 1.0966),
+      loss_trend = c(1.0000, 1.0000, 1.0012, 1.0062, 1.0113),
+      ulae_ratio = rep(1.143, 5)
+    )
+  ) |>
+  transmute(
+    AccidentYear,
+    EarnedPremium,
+    ReportedLosses,
+    trend = (loss_trend - 1) * ReportedLosses,
+    dev = (loss_dev - 1) * ReportedLosses,
+    ulae = (ulae_ratio - 1) * ReportedLosses
+  ) |>
+  pivot_longer(-(AccidentYear:EarnedPremium),
+               names_to = "field") |>
+  mutate(ratio = value / EarnedPremium) |>
+  select(-EarnedPremium, -value) |>
+  # pivot_wider(names_from = field, values_from = ratio)
+  ggplot(aes(x = AccidentYear, y = ratio, fill = field)) +
+  geom_bar(stat = "identity")
+
+#' Save to Image Folder
+# ggsave(
+#   paste0(
+#     path_png,
+#     "example_plot_d.png"
+#   ),
+#   width = 6,
+#   height = 4)
+```
+
+
 
 ```{r simple_fixes}
 #' Fake fitted severitiy data
