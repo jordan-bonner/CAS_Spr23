@@ -18,7 +18,9 @@ setdiff(
 pacman::p_load(
   raw,
   tidyverse,
-  tidylog
+  tidylog,
+  datasauRus,
+  gridExtra
 )
 
 #' Specify Image Filepath
@@ -37,6 +39,72 @@ pal_CAS <- c(
 )
 ```
 
+
+```{r anscombe_quartet}
+#' Sample `Anscombe's Quartet` Scatterplots
+datasets::anscombe |>
+  mutate(id = row_number()) |>
+  pivot_longer(-id) |>
+  separate_wider_position(name, c(var_type = 1, dataset = 1)) |>
+  pivot_wider(names_from = var_type, values_from = value) |>
+  ggplot(aes(x = x, y = y)) +
+  geom_point(size = 2) +
+  geom_smooth(method='lm', se = FALSE, fullrange = TRUE) +
+  theme_bw(base_size = 20) +
+  facet_wrap(~dataset, ncol = 2) +
+  theme(
+      strip.background = element_blank(),
+      strip.text.x = element_blank()
+  )
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "anscombe.png"
+  ),
+  width = 6,
+  height = 4)
+```
+
+```{r datasaurus}
+#' Sample `datasauRus` Scatterplots
+p_no_dino <- datasaurus_dozen |>
+  filter(dataset != "dino") |>
+  ggplot(aes(x = x, y = y, color = dataset)) +
+    geom_point(size = 1) +
+    theme_void() +
+    theme(legend.position = "none") +
+    facet_wrap(~dataset, ncol = 3) +
+    theme(
+        strip.background = element_blank(),
+        strip.text.x = element_blank()
+    )
+p_dino <- datasaurus_dozen |>
+  filter(dataset == "dino") |>
+  ggplot(aes(x = x, y = y), size = 5) +
+    geom_point(size = 3) +
+    theme_void() +
+    theme(legend.position = "none")
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "datasauRus_a.png"
+  ),
+  p_no_dino,
+  width = 4,
+  height = 4)
+ggsave(
+  paste0(
+    path_png,
+    "datasauRus_b.png"
+  ),
+  p_dino,
+  width = 4,
+  height = 4)
+```
 
 ```{r eg_a}
 #' Sample `pressure` Scatterplot
