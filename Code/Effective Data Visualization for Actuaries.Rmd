@@ -16,6 +16,8 @@ setdiff(
 
 #' Load (And Install if Necessary) Required Packages
 pacman::p_load(
+  httr, # For reading in TSA Data
+  XML, # For reading in TSA Data
   raw,
   tidyverse,
   tidylog,
@@ -42,11 +44,13 @@ pal_CAS <- c(
 
 ```{r anscombe_quartet}
 #' Sample `Anscombe's Quartet` Scatterplots
-datasets::anscombe |>
+d_anscombe <- datasets::anscombe |>
   mutate(id = row_number()) |>
   pivot_longer(-id) |>
   separate_wider_position(name, c(var_type = 1, dataset = 1)) |>
-  pivot_wider(names_from = var_type, values_from = value) |>
+  pivot_wider(names_from = var_type, values_from = value)
+
+d_anscombe |>
   ggplot(aes(x = x, y = y)) +
   geom_point(size = 2) +
   geom_smooth(method='lm', se = FALSE, fullrange = TRUE) +
@@ -62,6 +66,87 @@ ggsave(
   paste0(
     path_png,
     "anscombe.png"
+  ),
+  width = 6,
+  height = 4)
+```
+
+```{r seasonality}
+#' Show `TSA Seasonality`
+l_security  <- GET("https://www.tsa.gov/travel/passenger-volumes") |>
+  content("text") |>
+  readHTMLTable()
+d_security <- l_security[[1]] |>
+  as_tibble() |>
+  pivot_longer(-Date, names_to = "year", values_to = "pax_char") |>
+  mutate(date = mdy(paste(month(mdy(Date)),
+                          day(mdy(Date)),
+                          year,
+                          sep = "-")),
+         year = factor(year),
+         week = week(date),
+         date_axis =  mdy("1/1/20") + weeks(week - 1),
+         pax = extract_numeric(pax_char)) |>
+  group_by(year, week, date_axis) |>
+  summarize(pax = mean(pax))
+            
+d_security |>
+  ggplot(aes(x = date_axis, y = pax, color = year)) +
+  geom_line(size = 1) +
+  labs(
+    x = "Date",
+    y = "Mean Daily Count by Week",
+    title = "TSA Checkpoint Numbers",
+    color = "Year"
+  ) +
+  theme_minimal(base_size = 20) +
+  theme(legend.position="bottom") +
+  scale_x_date(#date_breaks = "3 months",
+               labels = scales::date_format("%b")) +
+  scale_y_continuous(labels = scales::comma) 
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "seasonality.png"
+  ),
+  width = 9,
+  height = 6)
+```
+
+
+```{r residual}
+#' Evaluate `Different Residual Plots`
+fit <- d_anscombe |>
+  nest_by(dataset) |>
+  mutate(mod = list(lm(y ~ x, data = data))) %>%
+  summarize(broom::tidy(mod)) |>
+  select(dataset, term, estimate) |>
+  pivot_wider(names_from = term, values_from = estimate) |>
+  select(dataset, intercept = `(Intercept)`, slope = x)
+
+d_anscombe |>
+  left_join(fit, by = "dataset") |>
+  mutate(Fitted = intercept + x * slope,
+         Residual = y - Fitted) |>
+  ggplot(aes(x = Fitted, y = Residual)) +
+  geom_point(size = 2) +
+  theme_bw(base_size = 20) +
+  facet_wrap(~dataset, ncol = 2) +
+  theme(
+      strip.background = element_blank(),
+      strip.text.x = element_blank()
+  ) +
+  geom_hline(yintercept = 0,
+             color = "blue",
+             linewidth = 1)
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "anscombe_residuals.png"
   ),
   width = 6,
   height = 4)
@@ -103,6 +188,81 @@ ggsave(
   ),
   p_dino,
   width = 4,
+  height = 4)
+```
+
+```{r big_picture}
+group_count <- 24
+set.seed(123)
+data.frame(group = 1:group_count,
+           starting_freq = rnorm(group_count, mean = 0.02, sd = 0.0075),
+           trend = runif(group_count, 0.015, 0.025)) |>
+  bind_rows(
+    data.frame(group = group_count + 1,
+               starting_freq = 0.0175,
+               trend = runif(1, 0.07, 0.08))
+  ) |>
+  crossing(data.frame(year = 2016:2020)) |>
+  group_by(group) |>
+  mutate(year_tot = year - 2015,
+         year_trend = rnorm(n(), mean = trend, sd = 0.015),
+         freq_fac = 1 + year_trend,
+         freq_running_total = cumprod(freq_fac),
+         freq = starting_freq * freq_running_total,
+         focus = if_else(group <= group_count, "0", "1")) |>
+  ungroup() |>
+  ggplot(aes(x = year, y = freq, group = group, color = focus)) +
+  geom_line() +
+  scale_color_manual(values = c("grey", "red")) +
+  scale_y_continuous(limits = c(0, 0.035), labels = scales::percent) +
+  labs(
+    title = "Frequency by Group Over Time",
+    x = "Year",
+    y = "Frequency"
+  ) +
+  theme_classic(base_size = 20) +
+  theme(legend.position = "none")
+
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "big_picture.png"
+  ),
+  width = 6,
+  height = 4)
+```
+```{r memory}
+text_str <- "Frequency for Group C exposures is three times the higher than other groups."
+memory_text <- ggpubr::ggparagraph(text = text_str, face = "italic", size = 18, color = "black") +
+            theme(plot.margin = unit(c(t = 7, r = 3, b = 5, l = 3),"lines"))
+memory_visual <- data.frame(group = c("A", "B", "C", "D"),
+                            prob = c(1.1E-2, 0.9E-2, 3E-2, 1.1E-2),
+                            callout = c("not_C", "not_C", "C", "not_C")) |>
+  ggplot(aes(x = group, y = prob, fill = callout)) +
+  geom_bar(stat = "identity", width = 0.75) +
+  scale_fill_manual(values = c("red", "grey")) +
+  labs(
+    x = "Group",
+    y = "Frequency"
+  ) +
+  theme_minimal(base_size = 20) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none") +
+  scale_y_continuous(labels = scales::percent)
+
+ggpubr::ggarrange(memory_text, memory_visual, 
+          ncol = 2, nrow = 1)
+
+#' Save to Image Folder
+ggsave(
+  paste0(
+    path_png,
+    "memory.png"
+  ),
+  width = 6,
   height = 4)
 ```
 
