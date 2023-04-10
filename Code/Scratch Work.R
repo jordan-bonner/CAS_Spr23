@@ -51,7 +51,7 @@ usworkcomptri8807 |>
 #' # ```
 #' 
 
-
+Hurricane |> mutate(month = lubridate::month(ISO_Time), Year = factor(Year)) |> count(Year, month, Number, Name) |> count(Year, month) |> ggplot(aes(x = month, y = n, color = Year, group = Year)) + geom_line() + scale_x_continuous(breaks = scales::pretty_breaks())
 
 
 PPA_LossTrend |>
@@ -171,4 +171,37 @@ StateExperience |>
            width = 0.25)
 # group = PolicyYezvar)) +
   
+
+
+
+# Loss Develoment:
+# library(ChainLadder)
+# 
+# 
+# # rep_tri <- 
+# PPA_LossDevelopment |>
+#   mutate(AccidentYear = factor(AccidentYear)) |>
+#   arrange(AccidentYear, Lag) |>
+#   group_by(AccidentYear) |>
+#   mutate(PriorReportedLoss = lag(ReportedLoss, default = 0),
+#          Increm = ReportedLoss - PriorReportedLoss,
+#          Lag_LDF = paste0(lag(Lag), "-", Lag),
+#          LDF = ReportedLoss / lag(ReportedLoss)) |>
+#   filter(Lag > 15) |>
+#   ggplot(aes(x = PriorReportedLoss, y = Increm, color = Lag_LDF, group = Lag_LDF)) +
+#   geom_point(size = 4)
+# 
+# 
+# 
+# 
+# # ggplot(aes(x = Lag, y = LDF, group = AccidentYear, color = AccidentYear)) +
+# # geom_point(linewidth = 1.25)
+# # as.triangle(
+# #   origin = "AccidentYear",
+# #   dev = "Lag",
+# #   value = "ReportedLoss")
+# 
+# plot(rep_tri)
+# ata(rep_tri)
+
 

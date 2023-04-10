@@ -123,8 +123,8 @@ fit <- d_anscombe |>
   mutate(mod = list(lm(y ~ x, data = data))) %>%
   summarize(broom::tidy(mod)) |>
   select(dataset, term, estimate) |>
-  pivot_wider(names_from = term, values_from = estimate) |>
-  select(dataset, intercept = `(Intercept)`, slope = x)
+  mutate(term = if_else(term == "x", "slope", "intercept")) |>
+  pivot_wider(names_from = term, values_from = estimate)
 
 d_anscombe |>
   left_join(fit, by = "dataset") |>
